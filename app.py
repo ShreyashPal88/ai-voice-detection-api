@@ -1,18 +1,21 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security.api_key import APIKeyHeader
-from pydantic import BaseModel
-from typing import Literal
+from pydantic import BaseModel, Field
 import base64
-import binascii
 import os
 
+# --------------------
+# App config
+# --------------------
 app = FastAPI(
     title="AI Generated Voice Detection API",
     description="Detects whether a voice sample is AI-generated or Human",
-    version="0.1.0"
+    version="1.0.0"
 )
 
-# Read API key from Railway environment
+# --------------------
+# API Key setup
+# --------------------
 API_KEY = os.getenv("API_KEY")
 
 api_key_header = APIKeyHeader(
@@ -20,26 +23,39 @@ api_key_header = APIKeyHeader(
     auto_error=False
 )
 
+# --------------------
+# Request / Response Models
+# --------------------
 class AudioRequest(BaseModel):
-    language: Literal["en", "hi"]
-    audio_format: Literal["wav", "mp3"]
-    audio_base64: str
+    language: str
+    audio_format: str = Field(..., alias="audioFormat")
+    audio_base64: str = Field(..., alias="audioBase64")
+
+    class Config:
+        populate_by_name = True  # accept snake_case + camelCase
+
 
 class AudioResponse(BaseModel):
     result: str
     confidence: float
 
+
+# --------------------
+# Endpoint
+# --------------------
 @app.post("/detect", response_model=AudioResponse)
 def detect_voice(
     data: AudioRequest,
     x_api_key: str = Depends(api_key_header)
 ):
+    # API key not set on server
     if API_KEY is None:
         raise HTTPException(
             status_code=500,
             detail="API key not configured"
         )
 
+    # Invalid API key
     if x_api_key != API_KEY:
         raise HTTPException(
             status_code=401,
@@ -48,20 +64,19 @@ def detect_voice(
 
     # Validate base64 audio
     try:
-        base64.b64decode(data.audio_base64, validate=True)
-    except binascii.Error:
+        base64.b64decode(data.audio_base64)
+    except Exception:
         raise HTTPException(
-            status_code=422,
+            status_code=400,
             detail="Invalid base64 audio data"
         )
 
-    # Dummy detection logic (ML-ready)
-    result = "Human" if data.audio_format == "wav" else "AI-generated"
-
+    # Dummy inference (replace with ML later)
     return {
-        "result": result,
+        "result": "Human",
         "confidence": 0.87
     }
+
 
 
 

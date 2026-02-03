@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Header, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel
 import base64
@@ -31,6 +31,10 @@ def detect_voice(
     data: AudioRequest,
     x_api_key: str = Depends(api_key_header)
 ):
+    # 🔎 DEBUG LOGS (TEMP)
+    print("ENV API_KEY =", repr(API_KEY))
+    print("HEADER x-api-key =", repr(x_api_key))
+
     if API_KEY is None:
         raise HTTPException(status_code=500, detail="API key not configured")
 
@@ -43,6 +47,7 @@ def detect_voice(
         "result": "Human",
         "confidence": 0.87
     }
+
 
 
 

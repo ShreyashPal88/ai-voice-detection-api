@@ -1,5 +1,4 @@
-from fastapi import FastAPI, Header, HTTPException, Depends
-from fastapi.security.api_key import APIKeyHeader
+from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 import base64
 
@@ -9,21 +8,8 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# =====================
-# API KEY CONFIG
-# =====================
-API_KEY = "HCL_GUVI_2026_KEY"
-API_KEY_NAME = "x-api-key"
+API_KEY = "CHANGE_ME"   # 👈 use this exact value in Swagger
 
-api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
-
-def verify_api_key(api_key: str = Depends(api_key_header)):
-    if api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API Key")
-
-# =====================
-# REQUEST / RESPONSE MODELS
-# =====================
 class AudioRequest(BaseModel):
     language: str
     audio_format: str
@@ -33,20 +19,20 @@ class AudioResponse(BaseModel):
     result: str
     confidence: float
 
-# =====================
-# ENDPOINT
-# =====================
-@app.post("/detect", response_model=AudioResponse, dependencies=[Depends(verify_api_key)])
-def detect_voice(data: AudioRequest):
-    # Dummy logic (hackathon-safe)
-    try:
-        base64.b64decode(data.audio_base64)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid base64 audio")
+@app.post("/detect", response_model=AudioResponse)
+def detect_voice(
+    data: AudioRequest,
+    x_api_key: str = Header(...)
+):
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid API Key")
+
+    # Just a dummy check (replace with ML later)
+    audio_bytes = base64.b64decode(data.audio_base64)
 
     return {
-        "result": "HUMAN",
-        "confidence": 1.0
+        "result": "Human",
+        "confidence": 0.87
     }
 
 
